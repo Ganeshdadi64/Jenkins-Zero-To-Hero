@@ -242,8 +242,177 @@ Q: How do you store/secure/handle secrets in Jenkins ?
 A: Again, there are multiple ways to achieve this, 
    Let me give you a brief explanation of all the posible options.
 ```  
-   - Credentials Plugin: Jenkins provides a credentials plugin that can be used to store secrets such as passwords, API keys, and certificates. The secrets are encrypted and stored securely within Jenkins, and can be easily retrieved in build scripts or used in other plugins.
-   
+   In Jenkins the Credentials Plugin is the most common way to store and use secrets securely.
+To understand it clearly, let’s break it into 3 parts:
+
+1️⃣ How it is implemented (setup in Jenkins)
+2️⃣ How it works internally
+3️⃣ How Jenkins injects credentials during pipeline execution
+
+1️⃣ How Credentials Plugin Is Implemented (Step-by-Step)
+Step 1: Open Credentials Management
+
+Go to Jenkins UI:
+
+Dashboard
+ → Manage Jenkins
+ → Manage Credentials
+
+You will see something like:
+
+Stores scoped to Jenkins
+   └── (global)
+
+The Global scope means the credentials can be used by all jobs.
+
+Step 2: Add a Credential
+
+Click:
+
+Add Credentials
+
+Now you select Credential Type.
+
+Example for GitHub:
+
+Kind: Username with password
+Username: devops_user
+Password: ********
+ID: github-creds
+Description: GitHub access credential
+
+Now Jenkins stores this securely.
+
+Example stored internally like:
+
+Credential ID: github-creds
+Username: devops_user
+Password: encrypted value
+2️⃣ Where Jenkins Stores Credentials
+
+All Jenkins data is stored in JENKINS_HOME directory.
+
+Example:
+
+/var/lib/jenkins
+
+Credentials are stored in:
+
+/var/lib/jenkins/credentials.xml
+
+Example structure:
+
+<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+  <scope>GLOBAL</scope>
+  <id>github-creds</id>
+  <username>devops_user</username>
+  <password>{encrypted_value}</password>
+</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+
+Important points:
+
+✔ Password is encrypted
+✔ Only Jenkins can decrypt it
+✔ Stored securely in Jenkins credential store
+
+Encryption key stored in:
+
+/var/lib/jenkins/secrets/
+3️⃣ How Jenkins Uses Credentials in Pipeline
+
+Now we connect the credential with a pipeline job.
+
+Example pipeline:
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git url: 'https://github.com/company/project.git',
+                    credentialsId: 'github-creds'
+            }
+        }
+    }
+}
+
+Here:
+
+credentialsId: 'github-creds'
+
+This tells Jenkins:
+
+Fetch credential with ID github-creds
+4️⃣ What Happens Internally During Pipeline Execution
+
+Let’s see the internal workflow.
+
+Step 1: Pipeline starts
+Jenkins Job
+     │
+     ▼
+Pipeline execution begins
+Step 2: Jenkins Reads credentialsId
+
+Pipeline contains:
+
+credentialsId: github-creds
+
+Jenkins searches:
+
+credentials.xml
+
+to find the credential.
+
+Step 3: Jenkins Decrypts Password
+
+Stored password is encrypted.
+
+Jenkins decrypts it using:
+
+/var/lib/jenkins/secrets/master.key
+
+So internally Jenkins gets:
+
+Username = devops_user
+Password = real password
+Step 4: Jenkins Injects Credentials
+
+Now Jenkins injects them into Git command.
+
+Internally Jenkins runs something like:
+
+git clone https://devops_user:password@github.com/company/project.git
+
+But this is done inside Jenkins runtime, not visible in code.
+
+So developers never see the password.
+
+5️⃣ How Jenkins Prevents Password Exposure
+
+Jenkins hides credentials in logs.
+
+Example build log:
+
+Cloning repository https://github.com/company/project.git
+Using credentials github-creds
+
+Password is masked like:
+
+****
+
+Even if a script prints it:
+
+echo $PASSWORD
+
+Jenkins masks it:
+
+****
+
+```
+
+ ```
    - Environment Variables: Secrets can be stored as environment variables in Jenkins and referenced in build scripts. However, this method is less secure because environment variables are visible in the build logs.
    
    - Hashicorp Vault: Jenkins can be integrated with Hashicorp Vault, which is a secure secrets management tool. Vault can be used to store and manage sensitive information, and Jenkins can retrieve the secrets as needed for builds.
