@@ -552,6 +552,236 @@ vars/dockerBuild.groovy
 
 
 ```
+
+How to implement shared library
+=====================================
+
+```
+In Jenkins, implementing a Shared Library means creating reusable pipeline code and connecting it to Jenkins so multiple pipelines can use it.
+
+Below is the complete real-world implementation step-by-step used in DevOps projects.
+
+1️⃣ Step 1: Create a Git Repository for Shared Library
+
+Usually companies store the shared library in Git (for example in GitHub or GitLab).
+
+Example repository name:
+
+jenkins-shared-library
+
+Repository structure (very important):
+
+jenkins-shared-library
+│
+├── vars
+│     └── buildApp.groovy
+│     └── dockerBuild.groovy
+│
+├── src
+│     └── org/company/utils.groovy
+│
+├── resources
+│
+└── README.md
+
+Explanation:
+
+Folder	Purpose
+vars	pipeline functions
+src	reusable groovy classes
+resources	extra files (configs, templates)
+
+Most pipelines use vars folder.
+
+2️⃣ Step 2: Create a Shared Function
+
+Example file:
+
+vars/buildApp.groovy
+
+Code:
+
+def call() {
+    echo "Building application..."
+
+    sh "mvn clean package"
+}
+
+Explanation:
+
+call() method makes the function usable directly in Jenkins pipeline.
+
+Now this becomes a global pipeline step.
+
+Example:
+
+buildApp()
+3️⃣ Step 3: Push Library to Git
+
+Example:
+
+https://github.com/company/jenkins-shared-library.git
+
+Now Jenkins will access this repository.
+
+4️⃣ Step 4: Configure Shared Library in Jenkins
+
+Go to Jenkins dashboard:
+
+Manage Jenkins
+ → Configure System
+
+Scroll to:
+
+Global Pipeline Libraries
+
+Add new library.
+
+Example configuration:
+
+Name: company-shared-lib
+Default Version: main
+Retrieval Method: Modern SCM
+Source Code Management: Git
+Repository URL:
+https://github.com/company/jenkins-shared-library.git
+
+Now Jenkins knows where to fetch shared code.
+
+5️⃣ Step 5: Use Shared Library in Jenkins Pipeline
+
+Now we import library in Jenkinsfile.
+
+Example Jenkinsfile:
+
+@Library('company-shared-lib') _
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Build') {
+            steps {
+                buildApp()
+            }
+        }
+
+    }
+}
+
+Explanation:
+
+@Library('company-shared-lib')
+
+tells Jenkins to load the shared library.
+
+6️⃣ Example: Docker Build Shared Function
+
+Shared library file:
+
+vars/dockerBuild.groovy
+
+Code:
+
+def call(String imageName) {
+
+    sh "docker build -t ${imageName} ."
+
+    sh "docker push ${imageName}"
+}
+
+Pipeline usage:
+
+@Library('company-shared-lib') _
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Docker Build') {
+            steps {
+                dockerBuild("company/app:v1")
+            }
+        }
+
+    }
+}
+7️⃣ Real Production Example
+
+Company with 50 microservices.
+
+Each pipeline requires:
+
+Git checkout
+Build
+SonarQube scan
+Docker build
+Push image
+Deploy to Kubernetes
+
+Instead of writing:
+
+200 lines Jenkinsfile for each service
+
+Shared library contains:
+
+buildApp()
+scanCode()
+dockerBuild()
+deployK8s()
+
+Pipeline becomes very small:
+
+@Library('company-shared-lib') _
+
+pipeline {
+
+    agent any
+
+    stages {
+
+        stage('Build') {
+            steps {
+                buildApp()
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                deployK8s()
+            }
+        }
+
+    }
+}
+
+This is how large DevOps teams standardize pipelines.
+
+8️⃣ What Happens Internally
+
+When pipeline starts:
+
+Pipeline starts
+     │
+     ▼
+Jenkins loads shared library from Git
+     │
+     ▼
+Functions become available to pipeline
+     │
+     ▼
+Pipeline calls those functions
+
+Jenkins automatically:
+
+clone library repo
+load groovy scripts
+execute pipeline
+
+```
+
 ```
         - Jenkinsfile: A shared Jenkinsfile can be used to define the build process for multiple jobs, reducing duplication and making it easier to manage the build process for multiple projects.
         
