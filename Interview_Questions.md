@@ -424,6 +424,25 @@ Q: What is latest version of Jenkins or which version of Jenkins are you using ?
 
 A: This is a very simple question interviewers ask to understand if you are actually using Jenkins day-to-day, so always be prepared for this.
 
+```
+1️⃣ Latest Version of Jenkins
+
+Jenkins has two types of releases:
+
+Weekly Release (Regular) – new features faster
+
+LTS (Long Term Support) – stable version used in production
+
+As of 2026:
+
+Latest weekly release: Jenkins 2.554
+
+Latest LTS version: Jenkins 2.541.2
+
+Most companies prefer LTS versions because they are more stable.
+
+```
+
 Q: What is shared modules in Jenkins ?
 
 A: Shared modules in Jenkins refer to a collection of reusable code and resources that can be shared across multiple Jenkins jobs. This allows for easier maintenance, reduced duplication, and improved consistency across multiple build processes.
